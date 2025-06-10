@@ -5,6 +5,7 @@ const crypto = require("crypto");
 
 const Booking = require("../models/Booking"); 
 const Slot = require("../models/Slot"); 
+const BookingLog = require("../models/BookingLog"); 
 const User = require("../models/User");
 
 // Create nodemailer transporter
@@ -67,7 +68,6 @@ async function handleExpiredBookings() {
 
     const expiredBookings = await Booking.find({
       exitTime: { $lte: utcCurrentTime },
-      status: { $ne: 'COMPLETED' } // Only process bookings that aren't already completed
     });
 
     console.log("Expired Bookings Found:", expiredBookings.length);
@@ -108,11 +108,21 @@ async function handleExpiredBookings() {
           }
         }
 
-        // Update booking status to completed instead of creating a log
-        await Booking.findByIdAndUpdate(booking._id, {
-          status: 'COMPLETED',
-          completedAt: new Date()
+        await BookingLog.create({
+          userId: booking.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          location: booking.location,
+          numberPlate: booking.numberPlate,
+          date: booking.date,
+          entryTime: booking.entryTime,
+          exitTime: booking.exitTime,
+          slotNumber: booking.slotNumber,
+          status: "Completed",
+          archivedAt: new Date(),
         });
+
+        await Booking.deleteOne({ _id: booking._id });
         
         console.log(`Successfully processed booking ${booking._id} for slot ${booking.slotNumber}`);
       } catch (error) {
