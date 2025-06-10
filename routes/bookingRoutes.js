@@ -14,7 +14,6 @@ const {
 } = require("../controllers/bookingControllers");
 const auth = require("../middleware/auth"); // Middleware for JWT-based authentication
 const Booking = require("../models/Booking"); // Assuming Booking model is defined in this file
-const BookingLog = require("../models/BookingLog"); // Assuming BookingLog model is defined in this file
 
 const router = express.Router();
 
@@ -41,19 +40,10 @@ router.get('/bookings/latest/:vehicleNumber', async (req, res) => {
   try {
     const { vehicleNumber } = req.params;
 
-    // First, check in active bookings collection
-    let booking = await Booking.findOne({ numberPlate: vehicleNumber })
+    const booking = await Booking.findOne({ numberPlate: vehicleNumber })
       .sort({ createdAt: -1 })
       .select('createdAt entryTime exitTime paymentStatus')
       .lean();
-
-    // If not found in active bookings, check in booking logs
-    if (!booking) {
-      booking = await BookingLog.findOne({ numberPlate: vehicleNumber })
-        .sort({ createdAt: -1 })
-        .select('createdAt entryTime exitTime paymentStatus')
-        .lean();
-    }
 
     if (!booking) {
       return res.status(404).json({ 
